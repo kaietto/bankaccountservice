@@ -50,4 +50,8 @@ spring:
 
 endpoints:
   baseurl: https://sandbox.platfr.io
+  apikey: FXOVVXXHVCPVPBZXIJOBGUGSKHDNFRRQJP
+  schema: S2S
+
+jwt-secret: bQeThWmZq4t6w9z$C&F)J@NcRfUjXn2r5u8x!A%D*G-KaPdSgVkYp3s6v9y$B?E(
 

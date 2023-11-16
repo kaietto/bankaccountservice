@@ -4,10 +4,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Collections;
-import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.core.Ordered;
@@ -16,6 +12,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.springframework.web.util.WebUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 public class StatsFilter extends OncePerRequestFilter implements Ordered {
@@ -51,13 +52,9 @@ public class StatsFilter extends OncePerRequestFilter implements Ordered {
             }
 
             if( !uri.contains("/swagger-ui/") && !uri.contains("/v3/api-docs") ){
-                log.info("########################## {} ##########################", wrappedRequest.getHeader("SessionUUID"));
+                log.info("##########################################################################################");
                 log.info("# Http method: {}", wrappedRequest.getMethod());
                 log.info("# Request uri: {}", uri + paramsAndValues);
-                log.info("# SessionUUID : {}", wrappedRequest.getHeader("SessionUUID"));
-                log.info("# User : {}", wrappedRequest.getHeader("User"));
-                log.info("# Agent : {}", wrappedRequest.getHeader("Agent"));
-                log.info("# DetectionDate : {}", wrappedRequest.getHeader("DetectionDate"));
                 log.info("# Request body : {}", getRequestBodyAsString(wrappedRequest));
                 log.info("# Response status code : {}", wrappedResponse.getStatus());
                 log.info("# Response body : {}", getResponseBodyAsString(wrappedResponse));
