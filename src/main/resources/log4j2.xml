@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+    <Appenders>
+        <RollingFile name="FileAppender" fileName="logs/bankaccountservice.log" filePattern="logs/bankaccountservice.log.%d{yyyy-MM-dd}" immediateFlush="true" append="true">
+            <PatternLayout>
+                <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%15.15t] %-40.40c{1.} %4L: %X{user}%m%n%ex</Pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="5" />
+        </RollingFile>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
+            <PatternLayout>
+                <Pattern>%d{HH:mm:ss.SSS} %5p %-30.30c{1}%30.30M:%3L %X{user}%m%n%ex</Pattern>
+            </PatternLayout>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="com.bankaccount.service" level="debug" additivity="false">
+            <AppenderRef ref="ConsoleAppender" level="debug"/>
+            <AppenderRef ref="FileAppender" level="info"/>
+        </Logger>
+        <Root level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="FileAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
