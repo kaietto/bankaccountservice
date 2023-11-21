@@ -2,12 +2,16 @@ package com.bankaccount.service.exception;
 
 import com.bankaccount.service.enumeration.BusinessMessage;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.io.Serial;
+
+@EqualsAndHashCode(callSuper = true)
 @Data
 @ToString(callSuper = true)
 public class BusinessException extends RuntimeException {
-    private static final long serialVersionUID = 20210712_1547L;
+    @Serial private static final long serialVersionUID = 20210712_1547L;
 
     private BusinessMessage code;
     private BusinessError payload;

@@ -7,7 +7,8 @@ public enum BusinessMessage {
     TIMEOUT(10002, "Timeout error"),
     ACCESSDENIED(10003, "Access denied"),
     INVALID_REQUEST(10004, "Invalid Request"),
-    UNEXPECTED_RESPONSE(10005, "Unexpected response");
+    UNEXPECTED_RESPONSE(10005, "Unexpected response"),
+    UNAUTHORIZED(10006, "Unauthorized");
 
     private final int value;
     private final String message;
