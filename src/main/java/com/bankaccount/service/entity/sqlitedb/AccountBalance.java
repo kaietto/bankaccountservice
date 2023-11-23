@@ -25,7 +25,7 @@ public class AccountBalance implements Serializable {
     private Long id;
     @Column(columnDefinition = "DATE")
     private String date;
-    private double balance;
-    private double availableBalance;
+    private Double balance;
+    private Double availableBalance;
     private String currency;
 }

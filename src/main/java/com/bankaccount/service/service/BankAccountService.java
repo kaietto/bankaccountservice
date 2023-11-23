@@ -18,17 +18,14 @@ import org.springframework.http.*;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -148,6 +145,95 @@ public class BankAccountService {
         return output;
     }
 
+    public CreateMoneyTransferOutputDto createMoneyTransfer(Long accountId) throws URISyntaxException {
+
+        CreateMoneyTransferOutputDto output = new CreateMoneyTransferOutputDto();
+
+
+        if (baseurl == null || baseurl.isEmpty()) baseurl = "https://sandbox.platfr.io";
+        if (apikey == null || apikey.isEmpty()) apikey = "FXOVVXXHVCPVPBZXIJOBGUGSKHDNFRRQJP";
+        if (schema == null || schema.isEmpty()) schema = "S2S";
+
+        String urlStr = baseurl + ACCOUNTS + accountId + "/payments/money-transfers";
+        log.info("createMoneyTransfer API url: {}", urlStr);
+
+        long startTime = System.currentTimeMillis();
+
+        // Build HTTP headers and create HTTP request entity
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("Auth-Schema", schema);
+        httpHeaders.set("Api-Key", apikey);
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<?> request = new HttpEntity<>(httpHeaders);
+
+        // Avoid Spring encoding for URI
+        DefaultUriBuilderFactory defaultUriBuilderFactory = new DefaultUriBuilderFactory();
+        defaultUriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+
+        // Set up RestTemplate
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setUriTemplateHandler(defaultUriBuilderFactory);
+        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+
+        // Define response entities for success and error cases
+        ResponseEntity<CreateMoneyTransferResponseDto> responseOk;
+        ResponseEntity<ErrorDto> responseKo;
+        try {
+            log.info("Calling responseOk = restTemplate.exchange");
+            responseOk = restTemplate.exchange(new URI(urlStr), HttpMethod.POST, request, CreateMoneyTransferResponseDto.class);
+            CreateMoneyTransferResponseDto responseBody = responseOk.getBody();
+
+            if ("OK".equals(Objects.requireNonNull(responseBody).getStatus())) {
+                log.info("responseBody.getStatus() = {}", responseBody.getStatus());
+                PayloadCreateMoneyTransferResponseDto payload = responseBody.getPayload();
+                log.info("Data: {}, Saldo: {}, Saldo disponibile: {}, Valuta: {}",
+                        payload.getAccountedDatetime(), payload.getAmount(), payload.getCreditor(), payload.getDebtor());
+
+                // Saving to the database // TODO
+                // saveToAccountBalance(payload);
+
+                output.setEsito("OK");
+                return output;
+            } else {
+                log.info("responseBody.getStatus() = {}", responseBody.getStatus());
+                log.info("Calling responseKo = restTemplate.exchange");
+                responseKo = restTemplate.exchange(new URI(urlStr), HttpMethod.POST, request, ErrorDto.class);
+                ErrorDto errorBody = responseKo.getBody();
+                log.error("Error response: {}", errorBody);
+                throw new BusinessException(BusinessMessage.GENERICERROR,
+                        errorBody == null ? "Errore generico" : errorBody.getErrors().get(0).getDescription());
+            }
+        } catch (HttpServerErrorException.InternalServerError ex) {
+            log.error("Internal Server Error: {} - {}", ex.getStatusCode(), ex.getMessage());
+            String errorResponseJson = ex.getResponseBodyAsString();
+            String description = JsonErrorUtility.extractCodeAndDescription(errorResponseJson);
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.GENERICERROR, description);
+        } catch (ResourceAccessException ex) {
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.TIMEOUT, "Timeout during service" + urlStr + "call: " + ex.getMessage());
+        } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.error("HTTP Client Error: {} - {}", HttpStatus.UNAUTHORIZED, ex.getMessage());
+                throw new BusinessException(BusinessMessage.UNAUTHORIZED, ex.getMessage());
+            } else {
+                // Extract description from the error response
+                String errorResponseJson = ex.getResponseBodyAsString();
+                String description = JsonErrorUtility.extractCodeAndDescription(errorResponseJson);
+                log.error(ex);
+                throw new BusinessException(BusinessMessage.GENERICERROR, description);
+            }
+        } catch (URISyntaxException ex) {
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.MALFORMEDURL, "Malformed URL: " + ex.getMessage());
+        } finally {
+            long endTime = System.currentTimeMillis();
+            long apiCallTime = endTime - startTime;
+            log.info("createMoneyTransfer call time: {} ms", apiCallTime);
+        }
+    }
+
     private static String jwtDecoder(String secret) {
         // Claudio: Provide a dummy JWT (not suitable for Production, only for DEMO simplification purposes)
         Instant expirationInstant = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
@@ -175,6 +261,45 @@ public class BankAccountService {
         accountBalance.setBalance(payload.getBalance());
         accountBalance.setAvailableBalance(payload.getAvailableBalance());
         accountBalance.setCurrency(payload.getCurrency());
+
+        // Check if account balance with same date already exists in the database table
+        Optional<AccountBalance> existingBalance = accountBalanceRepository.findByDate(accountBalance.getDate());
+        log.info("existingBalance = {}", existingBalance);
+
+        // Update or insert
+        if (existingBalance.isPresent()) {
+            // Update existing record with the latest values
+            AccountBalance existingRecord = existingBalance.get();
+            existingRecord.setBalance(accountBalance.getBalance());
+            existingRecord.setAvailableBalance(accountBalance.getAvailableBalance());
+            existingRecord.setCurrency(accountBalance.getCurrency());
+            log.info("updating existingRecord = {}", existingRecord);
+            accountBalanceRepository.save(existingRecord);
+        } else {
+            // Save a new record if it doesn't exist
+            log.info("saving accountBalance = {}", accountBalance);
+            accountBalanceRepository.save(accountBalance);
+
+            // Saving the new ID for the next record
+            IdGen idGen = new IdGen("accountbalance", newId);
+            log.info("saving idgen = {}", idGen);
+            idGenRepository.save(idGen);
+        }
+    }
+    public void saveToAccountBalance(PayloadCreateMoneyTransferResponseDto payload) {
+
+        AccountBalance accountBalance = new AccountBalance();
+
+        // Generate a new ID for the new record (SQLite doesn't support IDENTITY)
+        Long newId = Math.max(1L, idGenRepository.findNextIdPlusOne("accountbalance"));
+        accountBalance.setId(newId);
+
+        log.info("payload.getDate() = {}", payload.getAccountedDatetime());
+        accountBalance.setDate(payload.getAccountedDatetime());
+
+        // accountBalance.setBalance(payload.getAmount().getDebtorAmount());
+        // accountBalance.setAvailableBalance(payload.getAmount());
+        accountBalance.setCurrency("EUR");
 
         // Check if account balance with same date already exists in the database table
         Optional<AccountBalance> existingBalance = accountBalanceRepository.findByDate(accountBalance.getDate());

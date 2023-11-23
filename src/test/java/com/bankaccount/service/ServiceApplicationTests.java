@@ -1,5 +1,6 @@
 package com.bankaccount.service;
 
+import com.bankaccount.service.dto.CreateMoneyTransferOutputDto;
 import com.bankaccount.service.dto.GetAccountBalanceOutputDto;
 import com.bankaccount.service.dto.GetAccountBalanceResponseDto;
 import com.bankaccount.service.dto.PayloadGetAccountBalanceResponseDto;
@@ -11,21 +12,25 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.Optional;
+
+import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class ServiceApplicationTests {
 
 	@Mock
@@ -36,6 +41,8 @@ class ServiceApplicationTests {
 	private IdGenRepository idGenRepository;
 	@InjectMocks
 	private BankAccountService bankAccountService;
+	@Autowired
+	private MockMvc mockMvc;
 	@BeforeEach
 	void setUp() { MockitoAnnotations.openMocks(this); } //  [ClaudioM] Set up the test env and prepare required resources or dependencies
 
@@ -80,12 +87,37 @@ class ServiceApplicationTests {
 		return response;
 	}
 
-	// @Test
-	void testBonifico() {
-		// TODO: Implement the test for bonifico operation
-		// API: https://docs.fabrick.com/platform/apis/gbs-banking-payments-moneyTransfers-v4.0
-		// Input: Populate all required fields (refer to documentation)
-		// Output: Verify the operation status, handle the case of KO outcome as described
+	@Test
+	public void testCreateMoneyTransfer() throws Exception {
+		// Mock the behavior of the bankAccountService.createMoneyTransfer method
+		CreateMoneyTransferOutputDto outputDto = new CreateMoneyTransferOutputDto();
+		when(bankAccountService.createMoneyTransfer(anyLong())).thenReturn(outputDto);
+
+		// Perform the POST request to the controller endpoint
+		mockMvc.perform(MockMvcRequestBuilders.post("/createMoneyTransfer/{accountId}", 14537780)
+						.contentType(MediaType.APPLICATION_JSON))
+				.andExpect(MockMvcResultMatchers.status().isOk())
+				.andExpect(MockMvcResultMatchers.jsonPath("$.esito").value("OK"));
+		// [ClaudioM] This test returns KO with error "REQ004-Invalid account identifier"
+		// due to the fact that 14537780 for the sandbox API is not a valid account identifier
+		// (see https://docs.fabrick.com/platform/apis/gbs-banking-account-cash-v4.0)
+
+		// other possible unit test for this service:
+		// - testCreateMoneyTransfer_Success
+		// - testCreateMoneyTransfer_Fail
+		// - testCreateMoneyTransfer_Exception
+		// - testCreateMoneyTransfer_Timeout
+		// - testCreateMoneyTransfer_Unauthorized
+		// - testCreateMoneyTransfer_InvalidAccountIdentifier
+		// - testCreateMoneyTransfer_InvalidAmount
+		// - testCreateMoneyTransfer_InvalidCurrency
+		// - testCreateMoneyTransfer_InvalidDescription
+		// - testCreateMoneyTransfer_InvalidExecutionDate
+		// - testCreateMoneyTransfer_InvalidFeeType
+		// - testCreateMoneyTransfer_InvalidFeeAccountId
+		// - testCreateMoneyTransfer_InvalidFeeAmount
+		// - testCreateMoneyTransfer_InvalidFeeCurrency
+		// - so on...
 	}
 
 	// @Test

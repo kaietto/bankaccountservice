@@ -1,9 +1,6 @@
 package com.bankaccount.service.controller;
 
-import com.bankaccount.service.dto.ExceptionDto;
-import com.bankaccount.service.dto.GetAccountBalanceOutputDto;
-import com.bankaccount.service.dto.GetAccountBalanceResponseDto;
-import com.bankaccount.service.dto.TokenResponseDto;
+import com.bankaccount.service.dto.*;
 import com.bankaccount.service.service.BankAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,6 +11,8 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URISyntaxException;
 
 /**
  * @author Claudio Menin
@@ -67,6 +66,20 @@ public class BankAccountController {
     //public ResponseEntity<GetAccountBalanceResponseDto> getBalance(@RequestHeader(required = true, name = "Authorization") String accessToken,
     public ResponseEntity<GetAccountBalanceOutputDto> getBalance(@PathVariable("accountId") Long accountId) {
         return ResponseEntity.ok(bankAccountService.getAccountBalance(accountId));
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = CreateMoneyTransferOutputDto.class))}),
+            @ApiResponse(responseCode = "4XX", description = "Client errors", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionDto.class))}),
+            @ApiResponse(responseCode = "500", description = "Server error", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionDto.class))})
+    })
+    @Operation(summary = "Create a new money transfer")
+    @PostMapping("/createMoneyTransfer/{accountId}")
+    public ResponseEntity<CreateMoneyTransferOutputDto> createMoneyTransfer(@PathVariable("accountId") Long accountId) throws URISyntaxException {
+        return ResponseEntity.ok(bankAccountService.createMoneyTransfer(accountId));
     }
 
 }

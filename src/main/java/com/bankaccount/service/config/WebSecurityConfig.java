@@ -1,5 +1,6 @@
 package com.bankaccount.service.config;
 
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,6 +12,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 /**
  * @author Claudio Menin
  */
+@Log4j2
 @Configuration
 @EnableWebSecurity
 class WebSecurityConfig {
@@ -31,16 +33,18 @@ class WebSecurityConfig {
     private static final RequestMatcher[] API_MATCHERS = {
             new AntPathRequestMatcher(API_INTERFACE + "/health"),
             new AntPathRequestMatcher(API_INTERFACE + "/getDemoToken"),
-            new AntPathRequestMatcher(API_INTERFACE + "/getAccountBalance/{accountId}")
+            new AntPathRequestMatcher(API_INTERFACE + "/getAccountBalance/{accountId}"),
+            new AntPathRequestMatcher(API_INTERFACE + "/createMoneyTransfer/{accountId}")
     };
 
     @Bean
     SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         return http
+                .csrf(csrf -> csrf.disable()) // [ClaudioM] Spring Security 6.0 -> needed to disable CSRF protection and avoid POST 403 Forbidden error
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(SWAGGER_MATCHERS).permitAll()
                         .requestMatchers(API_MATCHERS).permitAll()
-                        .anyRequest().authenticated())
-                .build();
+                        .anyRequest().authenticated()
+                ).build();
     }
 }

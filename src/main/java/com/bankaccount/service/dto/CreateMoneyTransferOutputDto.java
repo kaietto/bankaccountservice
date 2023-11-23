@@ -12,7 +12,7 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GetAccountBalanceOutputDto implements Serializable {
-    @Serial private static final long serialVersionUID = 20230713_9799L;
-    private Double saldo;
+public class CreateMoneyTransferOutputDto implements Serializable {
+    @Serial private static final long serialVersionUID = 20230722_0101L;
+    private String esito;
 }
