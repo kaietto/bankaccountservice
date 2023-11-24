@@ -34,7 +34,8 @@ class WebSecurityConfig {
             new AntPathRequestMatcher(API_INTERFACE + "/health"),
             new AntPathRequestMatcher(API_INTERFACE + "/getDemoToken"),
             new AntPathRequestMatcher(API_INTERFACE + "/getAccountBalance/{accountId}"),
-            new AntPathRequestMatcher(API_INTERFACE + "/createMoneyTransfer/{accountId}")
+            new AntPathRequestMatcher(API_INTERFACE + "/createMoneyTransfer/{accountId}"),
+            new AntPathRequestMatcher(API_INTERFACE + "/getCashAccountTransactions/{accountId}")
     };
 
     @Bean

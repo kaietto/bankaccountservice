@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URISyntaxException;
@@ -80,6 +81,20 @@ public class BankAccountController {
     @PostMapping("/createMoneyTransfer/{accountId}")
     public ResponseEntity<CreateMoneyTransferOutputDto> createMoneyTransfer(@PathVariable("accountId") Long accountId) throws URISyntaxException {
         return ResponseEntity.ok(bankAccountService.createMoneyTransfer(accountId));
+    }
+
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = GetCashAccountTransactionsOutputDto.class))}),
+            @ApiResponse(responseCode = "4XX", description = "Client errors", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionDto.class))}),
+            @ApiResponse(responseCode = "500", description = "Server error", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionDto.class))})
+    })
+    @Operation(summary = "Get cash account transactions")
+    @GetMapping("/getCashAccountTransactions/{accountId}")
+    public ResponseEntity<GetCashAccountTransactionsOutputDto> getCashAccountTransactions(@PathVariable("accountId") Long accountId) {
+        return ResponseEntity.ok(bankAccountService.getCashAccountTransactions(accountId));
     }
 
 }

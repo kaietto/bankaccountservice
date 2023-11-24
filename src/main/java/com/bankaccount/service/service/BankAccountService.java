@@ -149,7 +149,6 @@ public class BankAccountService {
 
         CreateMoneyTransferOutputDto output = new CreateMoneyTransferOutputDto();
 
-
         if (baseurl == null || baseurl.isEmpty()) baseurl = "https://sandbox.platfr.io";
         if (apikey == null || apikey.isEmpty()) apikey = "FXOVVXXHVCPVPBZXIJOBGUGSKHDNFRRQJP";
         if (schema == null || schema.isEmpty()) schema = "S2S";
@@ -191,7 +190,6 @@ public class BankAccountService {
                         payload.getAccountedDatetime(), payload.getAmount(), payload.getCreditor(), payload.getDebtor());
 
                 // Saving to the database // TODO
-                // saveToAccountBalance(payload);
 
                 output.setEsito("OK");
                 return output;
@@ -204,6 +202,86 @@ public class BankAccountService {
                 throw new BusinessException(BusinessMessage.GENERICERROR,
                         errorBody == null ? "Errore generico" : errorBody.getErrors().get(0).getDescription());
             }
+        } catch (HttpServerErrorException.InternalServerError ex) {
+            log.error("Internal Server Error: {} - {}", ex.getStatusCode(), ex.getMessage());
+            String errorResponseJson = ex.getResponseBodyAsString();
+            String description = JsonErrorUtility.extractCodeAndDescription(errorResponseJson);
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.GENERICERROR, description);
+        } catch (ResourceAccessException ex) {
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.TIMEOUT, "Timeout during service" + urlStr + "call: " + ex.getMessage());
+        } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.error("HTTP Client Error: {} - {}", HttpStatus.UNAUTHORIZED, ex.getMessage());
+                throw new BusinessException(BusinessMessage.UNAUTHORIZED, ex.getMessage());
+            } else {
+                // Extract description from the error response
+                String errorResponseJson = ex.getResponseBodyAsString();
+                String description = JsonErrorUtility.extractCodeAndDescription(errorResponseJson);
+                log.error(ex);
+                throw new BusinessException(BusinessMessage.GENERICERROR, description);
+            }
+        } catch (URISyntaxException ex) {
+            log.error(ex);
+            throw new BusinessException(BusinessMessage.MALFORMEDURL, "Malformed URL: " + ex.getMessage());
+        } finally {
+            long endTime = System.currentTimeMillis();
+            long apiCallTime = endTime - startTime;
+            log.info("createMoneyTransfer call time: {} ms", apiCallTime);
+        }
+    }
+
+    public GetCashAccountTransactionsOutputDto getCashAccountTransactions(Long accountId){
+
+        GetCashAccountTransactionsOutputDto output = new GetCashAccountTransactionsOutputDto();
+
+        if (baseurl == null || baseurl.isEmpty()) baseurl = "https://sandbox.platfr.io";
+        if (apikey == null || apikey.isEmpty()) apikey = "FXOVVXXHVCPVPBZXIJOBGUGSKHDNFRRQJP";
+        if (schema == null || schema.isEmpty()) schema = "S2S";
+        //  Suggested dates to find transactions https://docs.fabrick.com/platform/apis/gbs-banking-account-cash-v4.0
+        String urlStr = baseurl + ACCOUNTS + accountId + "/transactions?fromAccountingDate=2022-01-01&toAccountingDate=2022-04-01";
+        log.info("getCashAccountTransactions API url: {}", urlStr);
+
+        long startTime = System.currentTimeMillis();
+
+        // Build HTTP headers and create HTTP request entity
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("Auth-Schema", schema);
+        httpHeaders.set("Api-Key", apikey);
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.set("X-Time-Zone", "Europe/Rome");
+
+        HttpEntity<?> request = new HttpEntity<>(httpHeaders);
+
+        // Avoid Spring encoding for URI
+        DefaultUriBuilderFactory defaultUriBuilderFactory = new DefaultUriBuilderFactory();
+        defaultUriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+
+        // Set up RestTemplate
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setUriTemplateHandler(defaultUriBuilderFactory);
+        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+
+        // Define response entities for success and error cases
+        ResponseEntity<GetCashAccountTransactionsOutputDto> responseOk;
+
+        try {
+            responseOk = restTemplate.exchange(new URI(urlStr), HttpMethod.GET, request, GetCashAccountTransactionsOutputDto.class);
+            log.info("responseOk = {}", responseOk);
+            if (responseOk != null && responseOk.getBody() != null){
+                output.setStatus(responseOk.getBody().getStatus());
+                output.setPayload(responseOk.getBody().getPayload());
+                output.setError(responseOk.getBody().getError());
+            }
+
+            log.info("Number of transactions: {}", output.getPayload().getList().size());
+            output.getPayload().getList().forEach(transaction
+                    -> log.info("TransactionId: {}", transaction.getTransactionId()));
+
+            // Saving to the database // TODO
+
+            return output;
         } catch (HttpServerErrorException.InternalServerError ex) {
             log.error("Internal Server Error: {} - {}", ex.getStatusCode(), ex.getMessage());
             String errorResponseJson = ex.getResponseBodyAsString();

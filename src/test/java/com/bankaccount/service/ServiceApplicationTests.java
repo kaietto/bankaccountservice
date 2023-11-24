@@ -1,9 +1,6 @@
 package com.bankaccount.service;
 
-import com.bankaccount.service.dto.CreateMoneyTransferOutputDto;
-import com.bankaccount.service.dto.GetAccountBalanceOutputDto;
-import com.bankaccount.service.dto.GetAccountBalanceResponseDto;
-import com.bankaccount.service.dto.PayloadGetAccountBalanceResponseDto;
+import com.bankaccount.service.dto.*;
 import com.bankaccount.service.repository.sqlitedb.AccountBalanceRepository;
 import com.bankaccount.service.repository.sqlitedb.IdGenRepository;
 import com.bankaccount.service.service.BankAccountService;
@@ -120,11 +117,33 @@ class ServiceApplicationTests {
 		// - so on...
 	}
 
-	// @Test
-	void testLetturaTransazioni() {
-		// TODO: Implement the test for transazioni reading
-		// API: https://docs.fabrick.com/platform/apis/gbs-banking-account-cash-v4.0
-		// Input: {accountId}:Long (application parameter); {fromAccountingDate} and {toAccountingDate} as indicated
-		// Output: Verify the correct display of the list of transazioni
+	@Test
+	public void testGetCashAccountTransactions_Success() throws Exception {
+		Long validAccountId = 14537780L;
+		// Mock the bankAccountService object
+		BankAccountService bankAccountService = mock(BankAccountService.class);
+
+		// Stub the behavior of the bankAccountService.getCashAccountTransactions method
+		GetCashAccountTransactionsOutputDto outputDto = new GetCashAccountTransactionsOutputDto();
+		when(bankAccountService.getCashAccountTransactions(validAccountId)).thenReturn(outputDto);
+
+		// Perform the GET request to the controller endpoint
+		mockMvc.perform(MockMvcRequestBuilders.get("/getCashAccountTransactions/{accountId}", validAccountId)
+						.contentType(MediaType.APPLICATION_JSON))
+				.andExpect(MockMvcResultMatchers.status().isOk());
+	}
+
+	@Test
+	public void testGetCashAccountTransactions_Fail() throws Exception {
+		Long invalidAccountId = 0L;
+		// Mock the bankAccountService object
+		BankAccountService bankAccountService = mock(BankAccountService.class);
+		// Mock the behavior of the bankAccountService.getCashAccountTransactions method to return a failure scenario
+		when(bankAccountService.getCashAccountTransactions(invalidAccountId)).thenReturn(null);
+
+		// Perform the GET request to the controller endpoint and expect a failure status
+		mockMvc.perform(MockMvcRequestBuilders.get("/getCashAccountTransactions/{accountId}", invalidAccountId)
+						.contentType(MediaType.APPLICATION_JSON))
+				.andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 }
