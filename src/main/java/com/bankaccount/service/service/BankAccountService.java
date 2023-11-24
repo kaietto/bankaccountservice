@@ -65,6 +65,11 @@ public class BankAccountService {
 
     public String checkHealth() { return "Bank Account Service project is operational"; }
 
+    /**
+     * Generates a JWT token for DEMO purposes.
+     * This method generates a JWT token with a hardcoded secret key.
+     * It would be used by client applications to authenticate with the API.
+     */
     public TokenResponseDto getToken (){
         TokenResponseDto token = new TokenResponseDto();
         token.setJwtToken("Bearer " + jwtDecoder(secret));
@@ -188,9 +193,7 @@ public class BankAccountService {
                 PayloadCreateMoneyTransferResponseDto payload = responseBody.getPayload();
                 log.info("Data: {}, Saldo: {}, Saldo disponibile: {}, Valuta: {}",
                         payload.getAccountedDatetime(), payload.getAmount(), payload.getCreditor(), payload.getDebtor());
-
                 // Saving to the database // TODO
-
                 output.setEsito("OK");
                 return output;
             } else {
@@ -278,9 +281,7 @@ public class BankAccountService {
             log.info("Number of transactions: {}", output.getPayload().getList().size());
             output.getPayload().getList().forEach(transaction
                     -> log.info("TransactionId: {}", transaction.getTransactionId()));
-
             // Saving to the database // TODO
-
             return output;
         } catch (HttpServerErrorException.InternalServerError ex) {
             log.error("Internal Server Error: {} - {}", ex.getStatusCode(), ex.getMessage());
@@ -313,7 +314,7 @@ public class BankAccountService {
     }
 
     private static String jwtDecoder(String secret) {
-        // Claudio: Provide a dummy JWT (not suitable for Production, only for DEMO simplification purposes)
+        // [Claudio] Provide a dummy JWT (not suitable for Production, only for DEMO simplification purposes)
         Instant expirationInstant = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
         return Jwts.builder()
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS512)
@@ -325,11 +326,15 @@ public class BankAccountService {
                 .compact();
     }
 
+    /**
+     * Saves account balance details to the database
+     * based on the payload received from an account balance query.
+     */
     public void saveToAccountBalance(PayloadGetAccountBalanceResponseDto payload) {
 
         AccountBalance accountBalance = new AccountBalance();
 
-        // Generate a new ID for the new record (SQLite doesn't support IDENTITY)
+        // Generate a new ID for the new record (since SQLite doesn't support IDENTITY columns)
         Long newId = Math.max(1L, idGenRepository.findNextIdPlusOne("accountbalance"));
         accountBalance.setId(newId);
 
@@ -346,7 +351,7 @@ public class BankAccountService {
 
         // Update or insert
         if (existingBalance.isPresent()) {
-            // Update existing record with the latest values
+            // Updates existing record if found, else saves new record
             AccountBalance existingRecord = existingBalance.get();
             existingRecord.setBalance(accountBalance.getBalance());
             existingRecord.setAvailableBalance(accountBalance.getAvailableBalance());
@@ -354,7 +359,7 @@ public class BankAccountService {
             log.info("updating existingRecord = {}", existingRecord);
             accountBalanceRepository.save(existingRecord);
         } else {
-            // Save a new record if it doesn't exist
+            // Save a new record
             log.info("saving accountBalance = {}", accountBalance);
             accountBalanceRepository.save(accountBalance);
 
@@ -364,6 +369,11 @@ public class BankAccountService {
             idGenRepository.save(idGen);
         }
     }
+
+    /**
+     * Saves account balance details to the database
+     * based on the money transfer payload received.
+     */
     public void saveToAccountBalance(PayloadCreateMoneyTransferResponseDto payload) {
 
         AccountBalance accountBalance = new AccountBalance();

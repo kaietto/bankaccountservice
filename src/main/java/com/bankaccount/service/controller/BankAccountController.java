@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URISyntaxException;
@@ -18,7 +17,8 @@ import java.net.URISyntaxException;
 /**
  * @author Claudio Menin
  * @date 16/11/2023
- * Controller of REST Bank Account Services
+ * Controller class for REST banking services
+ * Handles HTTP requests and delegates business logics to BankAccountService
  */
 @Log4j2
 @RestController
@@ -28,7 +28,7 @@ public class BankAccountController {
     @Autowired
     private BankAccountService bankAccountService;
 
-    // Claudio: WS Documentation at -> http://localhost:8080/bankaccountservice/swagger-ui.html
+    // Claudio: External - Web Service Documentation at -> http://localhost:8080/bankaccountservice/swagger-ui.html
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful operation", content = {
