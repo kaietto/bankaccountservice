@@ -91,7 +91,7 @@ public class BankAccountController {
             @ApiResponse(responseCode = "500", description = "Server error", content = {
                     @Content(mediaType = "application/json", schema = @Schema(implementation = ExceptionDto.class))})
     })
-    @Operation(summary = "Get cash account transactions")
+    @Operation(summary = "Retrieve cash account transactions")
     @GetMapping("/getCashAccountTransactions/{accountId}")
     public ResponseEntity<GetCashAccountTransactionsOutputDto> getCashAccountTransactions(@PathVariable("accountId") Long accountId) {
         return ResponseEntity.ok(bankAccountService.getCashAccountTransactions(accountId));
